@@ -14,7 +14,8 @@ import {
   LogOut,
   ArrowUp01,
   AudioLines,
-  FileBarChart
+  FileBarChart,
+  BookOpen
 } from 'lucide-react';
 import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
 import {  Routes, Route, Link } from 'react-router-dom';
@@ -24,6 +25,7 @@ import Students from './Students';
 import SubDash from '../subDash';
 import PoReportList from './PoReportList';
 import PoReportEditor from './PoReportEditor';
+import CourseManagement from './CourseManagement';
 
 const TeacherSidebar = () => {
   const [theme, setTheme] = useState(
@@ -51,6 +53,11 @@ const TeacherSidebar = () => {
       label: "PO Report Generator",
       href: "/teachers/po-reports",
       icon: <FileBarChart className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+    },
+    {
+      label: "Course Management",
+      href: "/teachers/courses",
+      icon: <BookOpen className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
     },
     // {
     //   label: "Manage Tests",
@@ -153,6 +160,7 @@ const Dashboard = () => {
             <Route path="/" element={<TeacherDashboard />} />
             <Route path="/po-reports" element={<PoReportList />} />
             <Route path="/po-reports/:reportId" element={<PoReportEditor />} />
+            <Route path="/courses" element={<CourseManagement />} />
             <Route path="/students" element={<Students />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/:subjectId" element={<SubDash />} />
