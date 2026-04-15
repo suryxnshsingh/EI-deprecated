@@ -22,6 +22,8 @@ import Profile from './Profile';
 import TeacherDashboard from './TeacherDashboard';
 import Students from './Students';
 import SubDash from '../subDash';
+import PoReportList from './PoReportList';
+import PoReportEditor from './PoReportEditor';
 
 const TeacherSidebar = () => {
   const [theme, setTheme] = useState(
@@ -44,6 +46,11 @@ const TeacherSidebar = () => {
       label: "Dashboard",
       href: "/teachers/",
       icon: <LayoutDashboard className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
+    },
+    {
+      label: "PO Report Generator",
+      href: "/teachers/po-reports",
+      icon: <FileBarChart className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
     },
     // {
     //   label: "Manage Tests",
@@ -144,9 +151,11 @@ const Dashboard = () => {
         <div className=' flex items-center justify-center text-black  dark:text-white'>
           <Routes>
             <Route path="/" element={<TeacherDashboard />} />
-            <Route path="/:subjectId" element={<SubDash />} />
+            <Route path="/po-reports" element={<PoReportList />} />
+            <Route path="/po-reports/:reportId" element={<PoReportEditor />} />
             <Route path="/students" element={<Students />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/:subjectId" element={<SubDash />} />
           </Routes>
           </div>
           </div>

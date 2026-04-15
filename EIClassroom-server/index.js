@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const operationRoutes = require('./routes/operation');
 const subjectRoutes = require('./routes/subjects');
 const poRoutes = require('./routes/po');
+const reportRoutes = require('./routes/reports');
 
 
 app.use(express.json());
@@ -15,6 +16,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/operation', operationRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/po', poRoutes);
+app.use('/api/reports', reportRoutes);
 
 
 const PORT = process.env.PORT || 8080;
