@@ -7,12 +7,13 @@ router.use(express.json());
 const prisma = new PrismaClient();
 
 // Route to fetch CO data for a specific subject
-router.get('/co-form/:subjectCode', async (req, res) => {
-  const { subjectCode } = req.params;
+router.get('/co-form/:subjectId', async (req, res) => {
+  const subjectId = parseInt(req.params.subjectId, 10);
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   try {
     const coData = await prisma.cO.findUnique({
-      where: { subjectCode },
+      where: { subjectId },
     });
 
     if (!coData) {
@@ -28,11 +29,13 @@ router.get('/co-form/:subjectCode', async (req, res) => {
 
 // Route to post Exam CO schema
 router.post('/co-form', async (req, res) => {
-  const { subjectCode, mst1, mst2 } = req.body;
+  const subjectId = parseInt(req.body.subjectId, 10);
+  const { mst1, mst2 } = req.body;
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   try {
     const newCO = await prisma.cO.upsert({
-      where: { subjectCode },
+      where: { subjectId },
       update: {
         MST1_Q1: mst1.Q1,
         MST1_Q2: mst1.Q2,
@@ -42,7 +45,7 @@ router.post('/co-form', async (req, res) => {
         MST2_Q3: mst2.Q3,
       },
       create: {
-        subjectCode,
+        subjectId,
         MST1_Q1: mst1.Q1,
         MST1_Q2: mst1.Q2,
         MST1_Q3: mst1.Q3,
@@ -61,7 +64,9 @@ router.post('/co-form', async (req, res) => {
 
 // Route to create a new sheet entry
 router.post('/submit-form', async (req, res) => {
-  const { id, name, subjectCode, mst1, mst2, assignment, endsem, indirect } = req.body;
+  const { id, name, mst1, mst2, assignment, endsem, indirect } = req.body;
+  const subjectId = parseInt(req.body.subjectId, 10);
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   const MST1_Q1 = mst1?.Q1;
   const MST1_Q2 = mst1?.Q2;
@@ -92,10 +97,10 @@ router.post('/submit-form', async (req, res) => {
   try {
     console.log('Received data:', req.body); // Log the received data
 
-    // Find the teacher based on subjectCode
+    // Find the teacher based on subjectId
     const subject = await prisma.subject.findUnique({
       where: {
-        code: subjectCode,
+        id: subjectId,
       },
       include: {
         teacher: true, // Include the teacher data in the result
@@ -111,8 +116,8 @@ router.post('/submit-form', async (req, res) => {
       data: {
         id,
         name,
-        subjectCode,
-        teacherId: subject.teacher.id, // Dynamically connect teacher through subjectCode
+        subjectId,
+        teacherId: subject.teacher.id, // Dynamically connect teacher through subjectId
         MST1_Q1: MST1_Q1 != null ? parseFloat(MST1_Q1) : null,
         MST1_Q2: MST1_Q2 != null ? parseFloat(MST1_Q2) : null,
         MST1_Q3: MST1_Q3 != null ? parseFloat(MST1_Q3) : null,
@@ -144,16 +149,18 @@ router.post('/submit-form', async (req, res) => {
   }
 });
 
-// Route to delete a student's record by ID and subjectCode
-router.delete('/sheets/:id/:subjectCode', async (req, res) => {
-  const { id, subjectCode } = req.params;
+// Route to delete a student's record by ID and subjectId
+router.delete('/sheets/:id/:subjectId', async (req, res) => {
+  const { id } = req.params;
+  const subjectId = parseInt(req.params.subjectId, 10);
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   try {
     await prisma.sheet.delete({
       where: {
-        id_subjectCode: {
+        id_subjectId: {
           id: id,
-          subjectCode: subjectCode,
+          subjectId: subjectId,
         },
       },
     });
@@ -165,14 +172,15 @@ router.delete('/sheets/:id/:subjectCode', async (req, res) => {
   }
 });
 
-// Route to get all rows from the Sheet table with a specific subjectCode
+// Route to get all rows from the Sheet table with a specific subjectId
 router.get('/sheets', async (req, res) => {
-  const { subjectCode } = req.query; // Retrieve subjectCode from query parameter
+  const subjectId = parseInt(req.query.subjectId, 10); // Retrieve subjectId from query parameter
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   try {
     const sheets = await prisma.sheet.findMany({
       where: {
-        subjectCode: subjectCode, // Filter records based on subjectCode
+        subjectId: subjectId, // Filter records based on subjectId
       },
     });
     res.status(200).json(sheets);
@@ -182,10 +190,12 @@ router.get('/sheets', async (req, res) => {
   }
 });
 
-// Route to update a specific sheet entry by ID and subjectCode
-router.put('/sheets/:id/:subjectCode', async (req, res) => {
-  const { id, subjectCode } = req.params;
-  const {         
+// Route to update a specific sheet entry by ID and subjectId
+router.put('/sheets/:id/:subjectId', async (req, res) => {
+  const { id } = req.params;
+  const subjectId = parseInt(req.params.subjectId, 10);
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
+  const {
     name,
     mst1,
     mst2,
@@ -197,9 +207,9 @@ router.put('/sheets/:id/:subjectCode', async (req, res) => {
   try {
     const updatedSheet = await prisma.sheet.update({
       where: {
-        id_subjectCode: {
+        id_subjectId: {
           id: id,
-          subjectCode: subjectCode,
+          subjectId: subjectId,
         },
       },
       data: {
@@ -237,13 +247,14 @@ router.put('/sheets/:id/:subjectCode', async (req, res) => {
 
 const ExcelJS = require('exceljs');
 
-router.get('/downloadmst1/:subjectCode', async (req, res) => {
-  const { subjectCode } = req.params;
+router.get('/downloadmst1/:subjectId', async (req, res) => {
+  const subjectId = parseInt(req.params.subjectId, 10);
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   try {
     // Fetch CO mappings from the CO table
     const coData = await prisma.cO.findUnique({
-      where: { subjectCode },
+      where: { subjectId },
     });
 
     if (!coData) {
@@ -252,7 +263,7 @@ router.get('/downloadmst1/:subjectCode', async (req, res) => {
 
     // Fetch student scores from the Sheet table
     const studentScores = await prisma.sheet.findMany({
-      where: { subjectCode },
+      where: { subjectId },
     });
 
     if (studentScores.length === 0) {
@@ -408,7 +419,8 @@ router.get('/downloadmst1/:subjectCode', async (req, res) => {
     };
 
     // Prepare the response with the generated Excel file
-    const fileName = `CO_Attainment_${subjectCode}.xlsx`;
+    const subjectForName = await prisma.subject.findUnique({ where: { id: subjectId }, select: { code: true } });
+    const fileName = `CO_Attainment_${subjectForName?.code || subjectId}.xlsx`;
     res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
@@ -421,13 +433,14 @@ router.get('/downloadmst1/:subjectCode', async (req, res) => {
   }
 });
 
-router.get('/downloadmst2/:subjectCode', async (req, res) => {
-  const { subjectCode } = req.params;
+router.get('/downloadmst2/:subjectId', async (req, res) => {
+  const subjectId = parseInt(req.params.subjectId, 10);
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   try {
     // Fetch CO mappings from the CO table
     const coData = await prisma.cO.findUnique({
-      where: { subjectCode },
+      where: { subjectId },
     });
 
     if (!coData) {
@@ -436,7 +449,7 @@ router.get('/downloadmst2/:subjectCode', async (req, res) => {
 
     // Fetch student scores from the Sheet table
     const studentScores = await prisma.sheet.findMany({
-      where: { subjectCode },
+      where: { subjectId },
     });
 
     if (studentScores.length === 0) {
@@ -592,7 +605,8 @@ router.get('/downloadmst2/:subjectCode', async (req, res) => {
     };
 
     // Prepare the response with the generated Excel file
-    const fileName = `CO_Attainment_${subjectCode}.xlsx`;
+    const subjectForName = await prisma.subject.findUnique({ where: { id: subjectId }, select: { code: true } });
+    const fileName = `CO_Attainment_${subjectForName?.code || subjectId}.xlsx`;
     res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
@@ -611,9 +625,10 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const xlsx = require('xlsx');
 
-router.post('/upload-excel/:subjectCode', upload.single('file'), async (req, res) => {
+router.post('/upload-excel/:subjectId', upload.single('file'), async (req, res) => {
   try {
-    const { subjectCode } = req.params;
+    const subjectId = parseInt(req.params.subjectId, 10);
+    if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -632,7 +647,7 @@ router.post('/upload-excel/:subjectCode', upload.single('file'), async (req, res
     // Get the subject to find the teacher
     const subject = await prisma.subject.findUnique({
       where: {
-        code: subjectCode,
+        id: subjectId,
       },
       include: {
         teacher: true,
@@ -662,7 +677,7 @@ router.post('/upload-excel/:subjectCode', upload.single('file'), async (req, res
         const studentData = {
           id: row['Enrollment No.'].toString(),
           name: row['Name'],
-          subjectCode: subjectCode,
+          subjectId: subjectId,
           teacherId: subject.teacher.id,
 
           // MST1 data
@@ -700,9 +715,9 @@ router.post('/upload-excel/:subjectCode', upload.single('file'), async (req, res
         // Check if student already exists for this subject
         const existingStudent = await prisma.sheet.findUnique({
           where: {
-            id_subjectCode: {
+            id_subjectId: {
               id: studentData.id,
-              subjectCode: subjectCode
+              subjectId: subjectId
             }
           }
         });
@@ -711,9 +726,9 @@ router.post('/upload-excel/:subjectCode', upload.single('file'), async (req, res
           // Update existing student
           await prisma.sheet.update({
             where: {
-              id_subjectCode: {
+              id_subjectId: {
                 id: studentData.id,
-                subjectCode: subjectCode
+                subjectId: subjectId
               }
             },
             data: studentData
@@ -744,9 +759,10 @@ router.post('/upload-excel/:subjectCode', upload.single('file'), async (req, res
 });
 
 // Route to provide an Excel template for data import
-router.get('/excel-template/:subjectCode', async (req, res) => {
+router.get('/excel-template/:subjectId', async (req, res) => {
   try {
-    const { subjectCode } = req.params;
+    const subjectId = parseInt(req.params.subjectId, 10);
+    if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
     
     // Create a new workbook and worksheet
     const workbook = new ExcelJS.Workbook();
@@ -782,7 +798,7 @@ router.get('/excel-template/:subjectCode', async (req, res) => {
     // Try to get existing data for the subject
     try {
       const sheets = await prisma.sheet.findMany({
-        where: { subjectCode }
+        where: { subjectId }
       });
       
       // Add sample data if available
@@ -853,7 +869,8 @@ router.get('/excel-template/:subjectCode', async (req, res) => {
     
     // Set response headers for file download
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=student_data_template_${subjectCode}.xlsx`);
+    const subjectForName = await prisma.subject.findUnique({ where: { id: subjectId }, select: { code: true } });
+    res.setHeader('Content-Disposition', `attachment; filename=student_data_template_${subjectForName?.code || subjectId}.xlsx`);
 
     // Write the file to the response
     await workbook.xlsx.write(res);
@@ -866,27 +883,28 @@ router.get('/excel-template/:subjectCode', async (req, res) => {
 
 // Route to download an Excel sheet with calculations and averages
 router.get('/overall-sheet', async (req, res) => {
-  const { subjectCode } = req.query; // Get subjectCode from query parameter
+  const subjectId = parseInt(req.query.subjectId, 10); // Get subjectId from query parameter
+  if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
   try {
     // Fetch the subject details
     const subject = await prisma.subject.findUnique({
-      where: { code: subjectCode },
+      where: { id: subjectId },
     });
 
     if (!subject) {
       return res.status(404).json({ error: 'Subject not found.' });
     }
 
-    // Fetch the sheets for the specified subjectCode
+    // Fetch the sheets for the specified subjectId
     const sheets = await prisma.sheet.findMany({
       where: {
-        subjectCode: subjectCode,
+        subjectId: subjectId,
       },
     });
 
     if (sheets.length === 0) {
-      return res.status(404).json({ error: 'No sheets found for this subject code.' });
+      return res.status(404).json({ error: 'No sheets found for this subject.' });
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -895,7 +913,7 @@ router.get('/overall-sheet', async (req, res) => {
     // Add header rows
     worksheet.addRow(['Shri G. S. Institute of Tech. and Science']);
     worksheet.addRow(['Department of Electronics and Instrumentation Engineering']);
-    worksheet.addRow([`Course Outcome Sheet for ${subjectCode}-${subject.name}`]);
+    worksheet.addRow([`Course Outcome Sheet for ${subject.code}-${subject.name}`]);
 
     // Center align and merge the header rows
     for (let i = 1; i <= 3; i++) {
@@ -936,7 +954,7 @@ router.get('/overall-sheet', async (req, res) => {
       const EndSem_Total = (sheet.EndSem_Q1 || 0) + (sheet.EndSem_Q2 || 0) + (sheet.EndSem_Q3 || 0) + (sheet.EndSem_Q4 || 0) + (sheet.EndSem_Q5 || 0);
 
       worksheet.addRow([
-        sheet.id, sheet.name, sheet.subjectCode,
+        sheet.id, sheet.name, subject.code,
         sheet.MST1_Q1, sheet.MST1_Q2, sheet.MST1_Q3, MST1_Total,
         sheet.MST2_Q1, sheet.MST2_Q2, sheet.MST2_Q3, MST2_Total,
         MST_Best,
@@ -969,13 +987,14 @@ router.get('/overall-sheet', async (req, res) => {
 });
 
 // Route for Co-matrix
-router.get('/co-matrix/:subjectCode', async (req, res) => {
+router.get('/co-matrix/:subjectId', async (req, res) => {
   try {
-    const { subjectCode } = req.params;
-    
+    const subjectId = parseInt(req.params.subjectId, 10);
+    if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
+
     // Fetch CO mappings
     const coMapping = await prisma.cO.findUnique({
-      where: { subjectCode }
+      where: { subjectId }
     });
 
     if (!coMapping) {
@@ -984,7 +1003,7 @@ router.get('/co-matrix/:subjectCode', async (req, res) => {
 
     // Fetch all sheets for calculations
     const sheets = await prisma.sheet.findMany({
-      where: { subjectCode }
+      where: { subjectId }
     });
 
     if (sheets.length === 0) {
@@ -1441,7 +1460,8 @@ router.get('/co-matrix/:subjectCode', async (req, res) => {
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=CO_Matrix_${subjectCode}.xlsx`);
+    const subjectForName = await prisma.subject.findUnique({ where: { id: subjectId }, select: { code: true } });
+    res.setHeader('Content-Disposition', `attachment; filename=CO_Matrix_${subjectForName?.code || subjectId}.xlsx`);
 
     // Write to response
     await workbook.xlsx.write(res);
@@ -1453,15 +1473,16 @@ router.get('/co-matrix/:subjectCode', async (req, res) => {
   }
 });
 
-// Route to generate and download Excel file for a specific subjectCode
-router.get('/end-excel/:subjectCode', async (req, res) => {
+// Route to generate and download Excel file for a specific subjectId
+router.get('/end-excel/:subjectId', async (req, res) => {
   try {
-    const { subjectCode } = req.params;
+    const subjectId = parseInt(req.params.subjectId, 10);
+    if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
     // Fetch all sheets for the given subject
     const sheets = await prisma.sheet.findMany({
       where: {
-        subjectCode: subjectCode
+        subjectId: subjectId
       },
       select: {
         id: true,
@@ -1599,7 +1620,8 @@ router.get('/end-excel/:subjectCode', async (req, res) => {
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=student_marks_${subjectCode}.xlsx`);
+    const subjectForName = await prisma.subject.findUnique({ where: { id: subjectId }, select: { code: true } });
+    res.setHeader('Content-Disposition', `attachment; filename=student_marks_${subjectForName?.code || subjectId}.xlsx`);
 
     // Send the file
     res.send(buffer);
@@ -1612,14 +1634,15 @@ router.get('/end-excel/:subjectCode', async (req, res) => {
 
 
 //Route to download assignment sheet
-router.get('/assignment-excel/:subjectCode', async (req, res) => {
+router.get('/assignment-excel/:subjectId', async (req, res) => {
   try {
-    const { subjectCode } = req.params;
+    const subjectId = parseInt(req.params.subjectId, 10);
+    if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
 
     // Fetch all sheets for the given subject
     const sheets = await prisma.sheet.findMany({
       where: {
-        subjectCode: subjectCode
+        subjectId: subjectId
       },
       select: {
         id: true,
@@ -1762,7 +1785,8 @@ router.get('/assignment-excel/:subjectCode', async (req, res) => {
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=assignment_marks_${subjectCode}.xlsx`);
+    const subjectForName = await prisma.subject.findUnique({ where: { id: subjectId }, select: { code: true } });
+    res.setHeader('Content-Disposition', `attachment; filename=assignment_marks_${subjectForName?.code || subjectId}.xlsx`);
 
     // Send the file
     res.send(buffer);
@@ -1776,13 +1800,14 @@ router.get('/assignment-excel/:subjectCode', async (req, res) => {
 
 // Export overall CO matrix
 
-router.get('/overall-co-matrix/:subjectCode', async (req, res) => {
+router.get('/overall-co-matrix/:subjectId', async (req, res) => {
   try {
-    const { subjectCode } = req.params;
-    
+    const subjectId = parseInt(req.params.subjectId, 10);
+    if (Number.isNaN(subjectId)) return res.status(400).json({ error: 'Invalid subjectId' });
+
     // Fetch CO mappings
     const coMapping = await prisma.cO.findUnique({
-      where: { subjectCode }
+      where: { subjectId }
     });
 
     if (!coMapping) {
@@ -1791,7 +1816,7 @@ router.get('/overall-co-matrix/:subjectCode', async (req, res) => {
 
     // Fetch all sheets for calculations
     const sheets = await prisma.sheet.findMany({
-      where: { subjectCode }
+      where: { subjectId }
     });
 
     if (sheets.length === 0) {
@@ -2134,7 +2159,8 @@ router.get('/overall-co-matrix/:subjectCode', async (req, res) => {
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=Overall_CO_Matrix_${subjectCode}.xlsx`);
+    const subjectForName = await prisma.subject.findUnique({ where: { id: subjectId }, select: { code: true } });
+    res.setHeader('Content-Disposition', `attachment; filename=Overall_CO_Matrix_${subjectForName?.code || subjectId}.xlsx`);
 
     // Write to response
     await workbook.xlsx.write(res);

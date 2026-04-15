@@ -9,75 +9,138 @@ generator client {
 }
 
 model Teacher {
-  id       Int     @id @default(autoincrement())
-  firstName     String
-  lastName     String
-  email    String  @unique
-  password String
-  subjects Subject[]
-  sheets   Sheet[]
+  id        Int       @id @default(autoincrement())
+  firstName String
+  lastName  String
+  email     String    @unique
+  password  String
+  subjects  Subject[]
+  sheets    Sheet[]
+  reports   Report[]
 }
 
 model Subject {
-  code      String      @id 
+  id        Int      @id @default(autoincrement())
+  code      String
   name      String
+  session   String
+  semester  Int
   teacher   Teacher  @relation(fields: [teacherId], references: [id])
   teacherId Int
   sheets    Sheet[]
-  CO       CO[]
-  Levels   Levels[]
+  CO        CO?
+  Levels    Levels?
+  PO        PO?
+  POSnapshot POSnapshot?
+  reportSubjects ReportSubject[]
+
+  @@unique([code, session, semester, teacherId])
 }
 
 model Sheet {
-  id                  String       // Part of composite primary key
-  subjectCode         String       // Part of composite primary key
+  id                  String
+  subjectId           Int
+  subject             Subject       @relation(fields: [subjectId], references: [id])
   name                String
-  subject             Subject       @relation(fields: [subjectCode], references: [code])
   teacher             Teacher       @relation(fields: [teacherId], references: [id])
   teacherId           Int
-  MST1_Q1             Decimal?          // Nullable field
-  MST1_Q2             Decimal?          // Nullable field
-  MST1_Q3             Decimal?          // Nullable field
-  MST2_Q1             Decimal?          // Nullable field
-  MST2_Q2             Decimal?          // Nullable field
-  MST2_Q3             Decimal?          // Nullable field
-  Assignment_CO1      Decimal?          // Nullable field
-  Assignment_CO2      Decimal?          // Nullable field
-  Assignment_CO3      Decimal?          // Nullable field
-  Assignment_CO4      Decimal?          // Nullable field
-  Assignment_CO5      Decimal?          // Nullable field
-  EndSem_Q1           Decimal?          // Nullable field
-  EndSem_Q2           Decimal?          // Nullable field
-  EndSem_Q3           Decimal?          // Nullable field
-  EndSem_Q4           Decimal?          // Nullable field
-  EndSem_Q5           Decimal?          // Nullable field
-  Indirect_CO1        Decimal?          // Nullable field
-  Indirect_CO2        Decimal?          // Nullable field
-  Indirect_CO3        Decimal?          // Nullable field
-  Indirect_CO4        Decimal?          // Nullable field
-  Indirect_CO5        Decimal?          // Nullable field
-  @@id([id, subjectCode]) // Composite primary key
+  MST1_Q1             Decimal?
+  MST1_Q2             Decimal?
+  MST1_Q3             Decimal?
+  MST2_Q1             Decimal?
+  MST2_Q2             Decimal?
+  MST2_Q3             Decimal?
+  Assignment_CO1      Decimal?
+  Assignment_CO2      Decimal?
+  Assignment_CO3      Decimal?
+  Assignment_CO4      Decimal?
+  Assignment_CO5      Decimal?
+  EndSem_Q1           Decimal?
+  EndSem_Q2           Decimal?
+  EndSem_Q3           Decimal?
+  EndSem_Q4           Decimal?
+  EndSem_Q5           Decimal?
+  Indirect_CO1        Decimal?
+  Indirect_CO2        Decimal?
+  Indirect_CO3        Decimal?
+  Indirect_CO4        Decimal?
+  Indirect_CO5        Decimal?
+
+  @@id([id, subjectId])
 }
 
 model CO {
-
-  subjectCode String @id 
-  subject             Subject       @relation(fields: [subjectCode], references: [code])
-  MST1_Q1 String
-  MST1_Q2 String
-  MST1_Q3 String
-  MST2_Q1 String
-  MST2_Q2 String
-  MST2_Q3 String
+  id        Int     @id @default(autoincrement())
+  subjectId Int     @unique
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  MST1_Q1   String
+  MST1_Q2   String
+  MST1_Q3   String
+  MST2_Q1   String
+  MST2_Q2   String
+  MST2_Q3   String
 }
 
-model Levels{
-  subjectCode String @id 
-  subject             Subject       @relation(fields: [subjectCode], references: [code])
-  CO1 Decimal?
-  CO2 Decimal?
-  CO3 Decimal?
-  CO4 Decimal?
-  CO5 Decimal?
-  
+model Levels {
+  id        Int     @id @default(autoincrement())
+  subjectId Int     @unique
+  subject   Subject @relation(fields: [subjectId], references: [id])
+  CO1       Decimal?
+  CO2       Decimal?
+  CO3       Decimal?
+  CO4       Decimal?
+  CO5       Decimal?
+}
+
+model PO {
+  id              Int      @id @default(autoincrement())
+  subjectId       Int      @unique
+  subject         Subject  @relation(fields: [subjectId], references: [id])
+  matrix1         Json
+  matrix2         Json
+  indirectMatrix  Json?
+  indirectAverage Json?
+  updatedAt       DateTime @updatedAt
+}
+
+model POSnapshot {
+  id              Int      @id @default(autoincrement())
+  subjectId       Int      @unique
+  subject         Subject  @relation(fields: [subjectId], references: [id])
+  directAverage   Json
+  indirectAverage Json
+  overallAverage  Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Report {
+  id        Int              @id @default(autoincrement())
+  name      String
+  teacher   Teacher          @relation(fields: [teacherId], references: [id])
+  teacherId Int
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  semesters ReportSemester[]
+}
+
+model ReportSemester {
+  id       Int             @id @default(autoincrement())
+  report   Report          @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  reportId Int
+  label    String
+  order    Int             @default(0)
+  subjects ReportSubject[]
+}
+
+model ReportSubject {
+  id              Int            @id @default(autoincrement())
+  semester        ReportSemester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  semesterId      Int
+  subject         Subject        @relation(fields: [subjectId], references: [id])
+  subjectId       Int
+  category        String?
+  theoryPractical String
+  overallPO       Json
+  order           Int            @default(0)
 }

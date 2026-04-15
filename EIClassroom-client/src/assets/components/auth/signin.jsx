@@ -5,6 +5,7 @@ import Input from "../ui/input";
 import { cn } from "../../../../lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react"; // Import Lucide React icons
+import { API_BASE } from "../../../../lib/api";
 
 const Signin = () => {
   localStorage.clear();
@@ -58,7 +59,7 @@ const Signin = () => {
     setButtonLoading(true); // Set button loading state to true
 
     try {
-      const response = await axios.post(`https://ei-deprecated-xpyt.onrender.com/api/auth/signin`, formData);
+      const response = await axios.post(`${API_BASE}/api/auth/signin`, formData);
       
 
       // Decode the JWT token

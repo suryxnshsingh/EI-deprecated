@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import SubCard  from '../ui/subcard';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE } from '../../../../lib/api';
 
 const Loading = () => {
     return (
@@ -40,7 +41,7 @@ const TeacherDashbard = () => {
     useEffect(() => {
         const fetchSubjects = async () => {
           try {
-            const response = await axios.get(`https://ei-deprecated-xpyt.onrender.com/api/subjects/subjects`, {
+            const response = await axios.get(`${API_BASE}/api/subjects/subjects`, {
               headers: {
                 Authorization: `Bearer ${localStorage.getItem("token")}`
               }
@@ -80,7 +81,7 @@ const TeacherDashbard = () => {
             </div>
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 md:mx-10 mx-5">
                 {subjects.map((sub) => (
-                    <SubCard key={sub.code} code={sub.code} name={sub.name}/>
+                    <SubCard key={sub.id} id={sub.id} code={sub.code} name={sub.name} session={sub.session} semester={sub.semester}/>
                 ))}
             </div>
         </div>
@@ -91,6 +92,8 @@ const CreateSubject = ({create, setCreate}) => {
     const [formData, setFormData] = useState({
       name: '',
       code: '',
+      session: '',
+      semester: '',
     });
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -108,8 +111,15 @@ const CreateSubject = ({create, setCreate}) => {
       e.preventDefault();
       setError('');
   
+      const payload = {
+        name: formData.name,
+        code: formData.code,
+        session: formData.session,
+        semester: parseInt(formData.semester, 10),
+      };
+
       try {
-        const response = await axios.post(`https://ei-deprecated-xpyt.onrender.com/api/subjects/newsubject`, formData, {
+        const response = await axios.post(`${API_BASE}/api/subjects/newsubject`, payload, {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming you store the token in localStorage
@@ -172,6 +182,46 @@ const CreateSubject = ({create, setCreate}) => {
                 className="peer-focus:font-medium absolute text-lg text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:text-purple-600 peer-focus:dark:text-purple-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
               >
                 Subject Code
+              </label>
+            </div>
+
+            <div className="relative z-0 w-full mb-5 group">
+              <input
+                type="text"
+                name="session"
+                id="subject_session"
+                className="block py-2.5 px-0 w-full text-lg text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text:white dark:border-gray-600 dark:focus:border-purple-500 focus:outline-none focus:ring-0 focus:border-purple-600 peer"
+                placeholder=" "
+                value={formData.session}
+                onChange={handleChange}
+                required
+              />
+              <label
+                htmlFor="subject_session"
+                className="peer-focus:font-medium absolute text-lg text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:text-purple-600 peer-focus:dark:text-purple-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              >
+                Session (e.g. 2025-26)
+              </label>
+            </div>
+
+            <div className="relative z-0 w-full mb-5 group">
+              <input
+                type="number"
+                name="semester"
+                id="subject_semester"
+                min="1"
+                max="8"
+                className="block py-2.5 px-0 w-full text-lg text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text:white dark:border-gray-600 dark:focus:border-purple-500 focus:outline-none focus:ring-0 focus:border-purple-600 peer"
+                placeholder=" "
+                value={formData.semester}
+                onChange={handleChange}
+                required
+              />
+              <label
+                htmlFor="subject_semester"
+                className="peer-focus:font-medium absolute text-lg text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:text-purple-600 peer-focus:dark:text-purple-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
+              >
+                Semester (1-8)
               </label>
             </div>
             {error && <div className="text-red-500 mb-3">{error}</div>}

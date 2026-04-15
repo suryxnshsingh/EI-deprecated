@@ -19,10 +19,10 @@ function App() {
             <Route path="/signin" element={<Signin/>}/>
             <Route path="/signup" element={<Signup/>}/>
             <Route path="/dashboard" element={<Dashbard/>}/>
-            <Route path="/subject/:subjectCode" element={<SubDash />} />
-            {/* <Route path="/teachers/subjects/:subjectCode" element={<SubDash />} /> */}
+            <Route path="/subject/:subjectId" element={<SubDash />} />
+            {/* <Route path="/teachers/subjects/:subjectId" element={<SubDash />} /> */}
             <Route path='/allsubs' element={<HOD />} />
-            <Route path="/allsubs/:subjectCode" element={<SubDash />} />
+            <Route path="/allsubs/:subjectId" element={<SubDash />} />
             <Route path="/teacers/po-generator" element={<POGenerator />} /> 
             <Route path='/students/*' element={<StudentSidebar />} />
             <Route path='/teachers/*' element={<TeacherSidebar />} />

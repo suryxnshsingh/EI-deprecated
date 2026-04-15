@@ -6,9 +6,12 @@ import { FaTrash, FaEdit, FaFileUpload, FaFileDownload } from "react-icons/fa";
 import { IoStatsChart } from "react-icons/io5";
 import { IoMdPersonAdd } from "react-icons/io";
 import { useDropzone } from 'react-dropzone';
+import POGenerator from './teacher/POGenerator';
+import { API_BASE } from '../../../lib/api';
 
 const SubDash = () => {
-  const { subjectCode } = useParams();
+  const { subjectId } = useParams();
+  const sid = parseInt(subjectId, 10);
   const [create, setCreate] = useState(false);
   const [schema, setSchema] = useState(false);
   const [edit, setEdit] = useState(false);
@@ -21,11 +24,13 @@ const SubDash = () => {
   const [upload, setUpload] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(null);
   const [uploadError, setUploadError] = useState(null);
+  const [activeTab, setActiveTab] = useState('co');
+  const [subjectMeta, setSubjectMeta] = useState(null);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/sheets?subjectCode=${subjectCode}`);
+      const response = await axios.get(`${API_BASE}/api/operation/sheets?subjectId=${sid}`);
       setSheets(response.data);
       setError(null);
       setLoading(false);
@@ -37,7 +42,7 @@ const SubDash = () => {
 
   const fetchCOData = async () => {
     try {
-      const response = await axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/co-form/${subjectCode}`);
+      const response = await axios.get(`${API_BASE}/api/operation/co-form/${sid}`);
       console.log('CO Data:', response.data);
       setCoData(response.data);
     } catch (err) {
@@ -45,21 +50,39 @@ const SubDash = () => {
     }
   };
 
+  const fetchSubjectMeta = async () => {
+    try {
+      const isHODLocal = localStorage.getItem("HOD");
+      const url = isHODLocal
+        ? `${API_BASE}/api/subjects/allsubjects`
+        : `${API_BASE}/api/subjects/subjects`;
+      const headers = isHODLocal
+        ? {}
+        : { Authorization: `Bearer ${localStorage.getItem("token")}` };
+      const response = await axios.get(url, { headers });
+      const found = (response.data || []).find((s) => s.id === sid);
+      if (found) setSubjectMeta(found);
+    } catch (err) {
+      console.error('Error fetching subject metadata:', err);
+    }
+  };
+
   useEffect(() => {
-    if (subjectCode) {
+    if (!Number.isNaN(sid)) {
       fetchData();
       fetchCOData();
+      fetchSubjectMeta();
     }
-  }, [subjectCode]);
+  }, [sid]);
 
   const isHOD = localStorage.getItem("HOD");
 
   return (
-    <div className="w-full min-h-screen h-full pb-12 poppins">
-      {create && <AddStudentPopup setCreate={setCreate} subjectCode={subjectCode} fetchData={fetchData} />}
-      {schema && <AddExamSchema setSchema={setSchema} subjectCode={subjectCode} fetchData={fetchData} fetchCOData={fetchCOData} />}
-      {edit && <EditStudentPopup setEdit={setEdit} subjectCode={subjectCode} editData={editData} fetchData={fetchData} />}
-      {upload && <UploadExcelPopup setUpload={setUpload} subjectCode={subjectCode} setUploadSuccess={setUploadSuccess} setUploadError={setUploadError} fetchData={fetchData} />}
+    <div className="w-[calc(100vw-120px)] max-w-[calc(100vw-120px)] min-w-0 min-h-screen h-full pb-12 poppins overflow-x-hidden">
+      {create && <AddStudentPopup setCreate={setCreate} subjectId={sid} fetchData={fetchData} />}
+      {schema && <AddExamSchema setSchema={setSchema} subjectId={sid} fetchData={fetchData} fetchCOData={fetchCOData} />}
+      {edit && <EditStudentPopup setEdit={setEdit} subjectId={sid} editData={editData} fetchData={fetchData} />}
+      {upload && <UploadExcelPopup setUpload={setUpload} subjectId={sid} setUploadSuccess={setUploadSuccess} setUploadError={setUploadError} fetchData={fetchData} />}
       <div>
       {isHOD && (
         <button
@@ -68,16 +91,69 @@ const SubDash = () => {
         >
           Back
         </button>)}
-        <h1 className='text-3xl font-bold dark:text-white pt-6 text-center'>{subjectCode}</h1>
-        
+        {subjectMeta && (
+          <div className='pt-6 flex flex-col items-center gap-3'>
+            <h1 className='text-3xl font-bold dark:text-white text-center'>
+              <span className='capitalize'>{subjectMeta.name}</span>
+              <span className='text-slate-400 dark:text-slate-500 font-normal mx-2'>:</span>
+              <span>{subjectMeta.code}</span>
+            </h1>
+            {(subjectMeta.session || subjectMeta.semester) && (
+              <div className='flex flex-wrap justify-center gap-2'>
+                {subjectMeta.session && (
+                  <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 border border-violet-200 dark:border-violet-800'>
+                    {subjectMeta.session}
+                  </span>
+                )}
+                {subjectMeta.semester && (
+                  <span className='inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'>
+                    Semester {subjectMeta.semester}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CO / PO Tabs */}
+        <div className="mt-4 mx-6 border-b border-neutral-300 dark:border-neutral-700 flex gap-2">
+          {[
+            { key: 'co', label: 'CO' },
+            { key: 'po-direct', label: 'PO Direct' },
+            { key: 'po-indirect', label: 'PO Indirect' },
+            { key: 'po-overall', label: 'PO Overall' },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 font-medium transition-colors border-b-2 -mb-px ${
+                activeTab === tab.key
+                  ? 'border-violet-600 text-violet-600 dark:text-violet-400'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {(activeTab === 'po-direct' || activeTab === 'po-indirect' || activeTab === 'po-overall') && (
+          <POGenerator
+            subjectId={sid}
+            poTab={activeTab === 'po-direct' ? 'direct' : activeTab === 'po-indirect' ? 'indirect' : 'overall'}
+          />
+        )}
+
+        <div className={activeTab === 'co' ? '' : 'hidden'}>
+
         {!coData && (
           <div className="text-center mx-10 w-[90%] mt-4 px-4 py-2 bg-red-100 dark:bg-red-900 text-red-800 border border-red-800 dark:text-red-200 dark:border-red-200 rounded-lg">
             Please define exam schema first
           </div>
         )}
-        
+
         {/* Add Data Section */}
-        
+
           <div className='mb-4 mt-4 px-4 mx-2'>
             <h2 className='text-lg font-semibold dark:text-white mb-2 flex items-center'>
             <IoMdPersonAdd className='mr-2 text-violet-600'/>
@@ -114,52 +190,47 @@ const SubDash = () => {
           </h2>
           <div className='grid lg:grid-cols-8 md:grid-cols-4 grid-cols-2 gap-4'>
             <button className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => overallSheet(subjectCode)}>
+              onClick={() => overallSheet(sid)}>
               Export All
-            </button>  
+            </button>
             <button className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => downloadMST1(subjectCode)}>
+              onClick={() => downloadMST1(sid)}>
               MST1
-            </button>  
+            </button>
             <button className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => downloadMST2(subjectCode)}>
+              onClick={() => downloadMST2(sid)}>
               MST2
-            </button>  
+            </button>
             <button className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => downloadAssignment(subjectCode)}>
+              onClick={() => downloadAssignment(sid)}>
               Assignment
-            </button>  
+            </button>
             <button className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => downloadEndSem(subjectCode)}>
+              onClick={() => downloadEndSem(sid)}>
               EndSem
             </button>
-            <button 
+            <button
               className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => downloadCOMatrix(subjectCode)}
+              onClick={() => downloadCOMatrix(sid)}
             >
               Direct CO
             </button>
-            <button 
+            <button
               className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => downloadOverallCO(subjectCode)}
+              onClick={() => downloadOverallCO(sid)}
             >
               Overall CO
             </button>
-            <button 
-              className='px-4 py-2 text-white border-2 border-neutral-200 dark:border-neutral-700 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 shadow-md hover:shadow-indigo-500/20'
-              onClick={() => navigate(`/teachers/po-generator`)}
-            >
-              PO Generator
-            </button>
           </div>
         </div>
-        <List subjectCode={subjectCode} setEdit={setEdit} setEditData={setEditData} sheets={sheets} loading={loading} error={error} coData={coData} />
+        <List subjectId={sid} setEdit={setEdit} setEditData={setEditData} sheets={sheets} loading={loading} error={error} coData={coData} />
+        </div>
       </div>
     </div>
   )
 }
 
-const UploadExcelPopup = ({ setUpload, subjectCode, setUploadSuccess, setUploadError, fetchData }) => {
+const UploadExcelPopup = ({ setUpload, subjectId, setUploadSuccess, setUploadError, fetchData }) => {
   const [uploading, setUploading] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   
@@ -171,7 +242,7 @@ const UploadExcelPopup = ({ setUpload, subjectCode, setUploadSuccess, setUploadE
     formData.append('file', acceptedFiles[0]);
 
     try {
-      const response = await axios.post(`https://ei-deprecated-xpyt.onrender.com/api/operation/upload-excel/${subjectCode}`, formData, {
+      const response = await axios.post(`${API_BASE}/api/operation/upload-excel/${subjectId}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -187,18 +258,18 @@ const UploadExcelPopup = ({ setUpload, subjectCode, setUploadSuccess, setUploadE
     } finally {
       setUploading(false);
     }
-  }, [subjectCode, fetchData, setUploadSuccess, setUploadError]);
+  }, [subjectId, fetchData, setUploadSuccess, setUploadError]);
 
   const handleDownloadTemplate = async () => {
     try {
       setDownloadingTemplate(true);
-      const response = await axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/excel-template/${subjectCode}`, {
+      const response = await axios.get(`${API_BASE}/api/operation/excel-template/${subjectId}`, {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `student_data_template_${subjectCode}.xlsx`);
+      link.setAttribute('download', `student_data_template_${subjectId}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -271,7 +342,7 @@ const UploadExcelPopup = ({ setUpload, subjectCode, setUploadSuccess, setUploadE
 };
 
 // Separate List component with its own state management
-const List = ({ subjectCode, setEdit, setEditData, sheets, loading, error, coData }) => {
+const List = ({ subjectId, setEdit, setEditData, sheets, loading, error, coData }) => {
   // Declare all state variables at the beginning of the component
   console.log(sheets);
 
@@ -416,7 +487,7 @@ const List = ({ subjectCode, setEdit, setEditData, sheets, loading, error, coDat
                     <button className='text-blue-500' onClick={() => { setEdit(true); setEditData(sheet); }}>
                       <FaEdit />
                     </button>
-                    <button className='text-red-500' onClick={() => deleteStudent(sheet.id, subjectCode)}>
+                    <button className='text-red-500' onClick={() => deleteStudent(sheet.id, subjectId)}>
                       <FaTrash />
                     </button>
                   </td>
@@ -430,9 +501,9 @@ const List = ({ subjectCode, setEdit, setEditData, sheets, loading, error, coDat
   );
 };
 
-const deleteStudent = async (id, subjectCode) => {
+const deleteStudent = async (id, subjectId) => {
   if(window.confirm('Are you sure you want to delete this student?')){
-    const response = await axios.delete(`https://ei-deprecated-xpyt.onrender.com/api/operation/sheets/${id}/${subjectCode}`);
+    const response = await axios.delete(`${API_BASE}/api/operation/sheets/${id}/${subjectId}`);
     console.log(response.data);
     window.location.reload();
   }
@@ -462,9 +533,9 @@ const validateIndirectCO = (value) => {
   return numValue >= 0 && numValue <= 3;
 };
 
-const AddExamSchema = ({ setSchema, subjectCode, fetchCOData }) => {
+const AddExamSchema = ({ setSchema, subjectId, fetchCOData }) => {
   const [formData, setFormData] = useState({
-    subjectCode,
+    subjectId,
     mst1: { Q1: '', Q2: '', Q3: '' },
     mst2: { Q1: '', Q2: '', Q3: '' },
   });
@@ -492,7 +563,7 @@ const AddExamSchema = ({ setSchema, subjectCode, fetchCOData }) => {
     e.preventDefault();
 
     const dataToSubmit = {
-      subjectCode: formData.subjectCode,
+      subjectId: formData.subjectId,
       mst1: {
         Q1: formData.mst1.Q1,
         Q2: formData.mst1.Q2,
@@ -508,7 +579,7 @@ const AddExamSchema = ({ setSchema, subjectCode, fetchCOData }) => {
     console.log('Data to Submit:', dataToSubmit);
 
     try {
-      const response = await axios.post(`https://ei-deprecated-xpyt.onrender.com/api/operation/co-form`, dataToSubmit);
+      const response = await axios.post(`${API_BASE}/api/operation/co-form`, dataToSubmit);
       alert('Form submitted successfully!');
       console.log(response.data);
       setSchema(false);
@@ -590,11 +661,11 @@ const AddExamSchema = ({ setSchema, subjectCode, fetchCOData }) => {
 };
 
  
-const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
+const AddStudentPopup = ({ setCreate, subjectId, fetchData }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     id: '',
-    subjectCode,
+    subjectId,
     name: '',
     mst1: { Q1: null, Q2: null, Q3: null },
     mst2: { Q1: null, Q2: null, Q3: null },
@@ -653,7 +724,7 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
 
     try {
       console.log('Submitting form data:', formData); // Log the form data being submitted
-      const response = await axios.post(`https://ei-deprecated-xpyt.onrender.com/api/operation/submit-form`, formData, {
+      const response = await axios.post(`${API_BASE}/api/operation/submit-form`, formData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
@@ -975,8 +1046,8 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
 };
 
 
-  const overallSheet = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/overall-sheet?subjectCode=${subjectCode}`, {
+  const overallSheet = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/overall-sheet?subjectId=${subjectId}`, {
       responseType: 'blob', // Important to set response type as blob for file download
     })
     .then((response) => {
@@ -994,8 +1065,8 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-  const downloadMST1 = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/downloadmst1/${subjectCode}`, {
+  const downloadMST1 = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/downloadmst1/${subjectId}`, {
       responseType: 'blob', // Important to set response type as blob for file download
     })
     .then((response) => {
@@ -1013,8 +1084,8 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-  const downloadMST2 = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/downloadmst2/${subjectCode}`, {
+  const downloadMST2 = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/downloadmst2/${subjectId}`, {
       responseType: 'blob', // Important to set response type as blob for file download
     })
     .then((response) => {
@@ -1032,8 +1103,8 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-  const downloadEndSem = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/end-excel/${subjectCode}`, {
+  const downloadEndSem = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/end-excel/${subjectId}`, {
       responseType: 'blob',
     })
     .then((response) => {
@@ -1050,8 +1121,8 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-  const downloadAssignment = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/assignment-excel/${subjectCode}`, {
+  const downloadAssignment = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/assignment-excel/${subjectId}`, {
       responseType: 'blob',
     })
     .then((response) => {
@@ -1068,8 +1139,8 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-  const downloadCOSheet = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/generate-co-attainment/${subjectCode}`, {
+  const downloadCOSheet = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/generate-co-attainment/${subjectId}`, {
       responseType: 'blob',
     })
     .then((response) => {
@@ -1086,15 +1157,15 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-  const downloadCOMatrix = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/co-matrix/${subjectCode}`, {
+  const downloadCOMatrix = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/co-matrix/${subjectId}`, {
       responseType: 'blob',
     })
     .then((response) => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `CO_Matrix_${subjectCode}.xlsx`);
+      link.setAttribute('download', `CO_Matrix_${subjectId}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1104,15 +1175,15 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-  const downloadOverallCO = (subjectCode) => {
-    axios.get(`https://ei-deprecated-xpyt.onrender.com/api/operation/overall-co-matrix/${subjectCode}`, {
+  const downloadOverallCO = (subjectId) => {
+    axios.get(`${API_BASE}/api/operation/overall-co-matrix/${subjectId}`, {
       responseType: 'blob',
     })
     .then((response) => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Overall_CO_Matrix_${subjectCode}.xlsx`);
+      link.setAttribute('download', `Overall_CO_Matrix_${subjectId}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -1122,10 +1193,10 @@ const AddStudentPopup = ({ setCreate, subjectCode, fetchData }) => {
     });
   };
 
-const EditStudentPopup = ({ setEdit, subjectCode, editData, fetchData }) => {
+const EditStudentPopup = ({ setEdit, subjectId, editData, fetchData }) => {
   const [formData, setFormData] = useState({
     id: editData.id,
-    subjectCode,
+    subjectId,
     name: editData.name,
     mst1: { Q1: editData.MST1_Q1, Q2: editData.MST1_Q2, Q3: editData.MST1_Q3 },
     mst2: { Q1: editData.MST2_Q1, Q2: editData.MST2_Q2, Q3: editData.MST2_Q3 },
@@ -1184,7 +1255,7 @@ const EditStudentPopup = ({ setEdit, subjectCode, editData, fetchData }) => {
 
     try {
       console.log('Submitting form data:', formData); // Log the form data being submitted
-      const response = await axios.put(`https://ei-deprecated-xpyt.onrender.com/api/operation/sheets/${formData.id}/${formData.subjectCode}`, formData, {
+      const response = await axios.put(`${API_BASE}/api/operation/sheets/${formData.id}/${formData.subjectId}`, formData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',

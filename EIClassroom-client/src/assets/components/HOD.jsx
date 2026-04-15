@@ -6,6 +6,7 @@ import Input from "./ui/input";
 import Navbar from "./auth/navbar";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../../../lib/utils";
+import { API_BASE } from "../../../lib/api";
 
 const Loading = () => {
   return (
@@ -25,7 +26,7 @@ const HOD = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await axios.get(`https://ei-deprecated-xpyt.onrender.com/api/subjects/allsubjects`);
+        const response = await axios.get(`${API_BASE}/api/subjects/allsubjects`);
         setSubjects(response.data);
       } catch (err) {
         setError("Failed to fetch subjects");
@@ -71,9 +72,12 @@ const HOD = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-5">
           {subjects.map((subject) => (
             <SubCard
-              key={subject.code}
+              key={subject.id}
+              id={subject.id}
               name={subject.name}
               code={subject.code}
+              session={subject.session}
+              semester={subject.semester}
             />
           ))}
         </div>

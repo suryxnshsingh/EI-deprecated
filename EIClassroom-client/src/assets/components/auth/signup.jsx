@@ -5,6 +5,7 @@ import Input from "../ui/input";
 import { cn } from "../../../../lib/utils";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react"; // Import Lucide React icons
+import { API_BASE } from "../../../../lib/api";
 
 const Signup = () => {
   const [theme, setTheme] = useState(
@@ -58,7 +59,7 @@ const Signup = () => {
 
     try {
       // Send the signup request to the backend
-      const response = await axios.post(`https://ei-deprecated-xpyt.onrender.com/api/auth/signup`, formData);
+      const response = await axios.post(`${API_BASE}/api/auth/signup`, formData);
 
       
       setSuccess("Signup successful!");

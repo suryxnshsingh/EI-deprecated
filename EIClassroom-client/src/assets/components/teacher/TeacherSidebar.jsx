@@ -18,17 +18,10 @@ import {
 } from 'lucide-react';
 import { Sidebar, SidebarBody, SidebarLink } from '../ui/sidebar';
 import {  Routes, Route, Link } from 'react-router-dom';
-import Attendance from './Attendance';
 import Profile from './Profile';
 import TeacherDashboard from './TeacherDashboard';
-import SubjectDashboard from './SubjectDashboard';
-import Books from './Books';
-import Reports from './Reports';
 import Students from './Students';
-import subDash from '../subDash';
 import SubDash from '../subDash';
-import Tests from './Tests';
-import POGenerator from './POGenerator';
 
 const TeacherSidebar = () => {
   const [theme, setTheme] = useState(
@@ -62,21 +55,6 @@ const TeacherSidebar = () => {
     //     href: "/teachers/students",
     //     icon: <Users className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
     // },
-    {
-      label: "PO Generator",
-      href: "/teachers/po-generator",
-      icon: <FileBarChart className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
-    },
-    {
-        label: "Download Reports",
-        href: "/teachers/reports",
-        icon: <FileDown className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
-    },
-    {
-      label: "Settings",
-      href: "/teachers/settings",
-      icon: <Settings className="text-neutral-700 dark:text-neutral-200 h-5 w-5 flex-shrink-0" />
-    },
     {
       label: "Logout",
       href: "/signin",
@@ -166,65 +144,12 @@ const Dashboard = () => {
         <div className=' flex items-center justify-center text-black  dark:text-white'>
           <Routes>
             <Route path="/" element={<TeacherDashboard />} />
-            <Route path="/:subjectCode" element={<SubjectDashboard />} />
+            <Route path="/:subjectId" element={<SubDash />} />
             <Route path="/students" element={<Students />} />
-            <Route path="/tests" element={<Tests />} />
-            <Route path="/po-generator" element={<POGenerator />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/reports/:subjectCode" element={<SubDash />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<SettingsPage />} />
           </Routes>
           </div>
           </div>
-      </div>
-    </div>
-  );
-};
-
-const SettingsPage = () => {
-  const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return 'light';
-    
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) return savedTheme;
-    
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const handleThemeToggle = () => {
-    setTheme(prevTheme => prevTheme === 'dark' ? 'light' : 'dark');
-  };
-
-  return (
-    <div className="p-6 text-start">
-      <h1 className="text-3xl font-semibold mb-8">Settings</h1>
-      
-      <div className="space-y-6">
-        <div className="flex items-center justify-between max-w-md">
-          <h2 className="text-lg font-medium pr-2">Theme Preference :</h2>
-          
-          <div className="flex items-center space-x-3">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={theme === "dark"}
-                onChange={handleThemeToggle}
-                aria-label="Toggle theme"
-              />
-              <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-            </label>
-            <span className="text-xl" aria-hidden="true">
-              {theme === "dark" ? "🌙" : "☀️"}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
